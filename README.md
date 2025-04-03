@@ -1,67 +1,5 @@
 # pyTDGL
-
-![pyTDGL Logo](docs/images/logo-transparent-small.png)
-
-Time-dependent Ginzburg-Landau in Python
-
-![PyPI](https://img.shields.io/pypi/v/tdgl)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/loganbvh/py-tdgl/lint-and-test.yml?branch=main)
-[![Documentation Status](https://readthedocs.org/projects/py-tdgl/badge/?version=latest)](https://py-tdgl.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/loganbvh/py-tdgl/branch/main/graph/badge.svg?token=VXdxJKP6Ag)](https://codecov.io/gh/loganbvh/py-tdgl)
-![GitHub](https://img.shields.io/github/license/loganbvh/py-tdgl)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![DOI](https://zenodo.org/badge/535746543.svg)](https://zenodo.org/badge/latestdoi/535746543)
-
-
-
-## Motivation
-`pyTDGL` solves a 2D generalized time-dependent Ginzburg-Landau (TDGL) equation, enabling simulations of vortex and phase dynamics in thin film superconducting devices.
-
-## Learn `pyTDGL`
-
-The documentation for `pyTDGL` can be found at [py-tdgl.readthedocs.io](https://py-tdgl.readthedocs.io/en/latest/).
-
-## Try `pyTDGL`
-
-Click the badge below to try `pyTDGL` interactively online via [Google Colab](https://colab.research.google.com/):
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/loganbvh/py-tdgl/blob/main/docs/notebooks/quickstart.ipynb)
-
-## Install `pyTDGL`
-
-`pyTDGL` requires `python` `3.8`, `3.9`, `3.10`, `3.11`, `3.12`, or `3.13`. We recommend installing `pyTDGL` in a [`conda` environment](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html), e.g.
-
-```bash
-conda create --name tdgl python="3.12"
-conda activate tdgl
-```
-
-### Install via `pip`
-
-From  [PyPI](https://pypi.org/project/tdgl/), the Python Package index:
-    
-```bash
-pip install tdgl
-```
-
-From this [GitHub repository](https://github.com/loganbvh/py-tdgl/):
-
-```bash
-pip install git+https://github.com/loganbvh/py-tdgl.git
-```
-
-Editable installation:
-
-```bash
-git clone https://github.com/loganbvh/py-tdgl.git
-cd py-tdgl
-pip install -e ".[dev,docs]"
-```
-## About `pyTDGL`
-
-### Authors
-
-- Primary author and maintainer: [@loganbvh](https://github.com/loganbvh/).
+Original version: [py-TDGL]https://github.com/loganbvh/py-tdgl/
 
 ### Citing `pyTDGL`
 
@@ -86,7 +24,6 @@ If you use `pyTDGL` in your research, please cite the paper linked above.
         doi      = "10.1016/j.cpc.2023.108799"
     }
 
-
 ### Acknowledgments
 
 Parts of this package have been adapted from [`SuperDetectorPy`](https://github.com/afsa/super-detector-py), a GitHub repo authored by [Mattias Jönsson](https://github.com/afsa). Both `SuperDetectorPy` and `py-tdgl` are released under the open-source MIT License. If you use either package in an academic publication or similar, please consider citing the following in addition to the `pyTDGL` paper:
@@ -96,3 +33,5 @@ Parts of this package have been adapted from [`SuperDetectorPy`](https://github.
 
 The user interface is adapted from [`SuperScreen`](https://github.com/loganbvh/superscreen).
 
+# This fork
+This fork of the py-TDGL package is slightly modified in order to allow thermoelectric quasiparticle currents $\mathbf{J} = \sigma S \nabla T$, and was used in the article [Thermoelectric AC Josephson effect](arXiv:)
