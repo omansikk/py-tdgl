@@ -46,6 +46,7 @@ def validate_terminal_currents(
             raise ValueError(
                 f"Unknown terminal(s) in terminal currents: {list(unknown)}."
             )
+
         total_current = sum(currents.values())
         if total_current:
             raise ValueError(
@@ -151,6 +152,7 @@ class TDGLSolver:
         xi = device.coherence_length.magnitude
         self.u = device.layer.u
         self.gamma = device.layer.gamma
+        self.eta = device.layer.eta
         K0 = device.K0
         A0 = device.A0
         Bc2 = device.Bc2
@@ -294,13 +296,13 @@ class TDGLSolver:
             normalized_directions = cupy.asarray(normalized_directions)
             current_A_applied = cupy.asarray(current_A_applied)
 
+        self.epsilon = epsilon
+        psi_init = np.sqrt(np.complex128(epsilon))
         self.psi_init = psi_init
         self.mu_init = mu_init
-        self.epsilon = epsilon
         self.mu_boundary = mu_boundary
         self.normalized_directions = normalized_directions
         self.current_A_applied = current_A_applied
-
         self.new_A_induced = None
         self.areas = None
         if options.include_screening:
@@ -415,7 +417,8 @@ class TDGLSolver:
             assert cupy is not None
             assert isinstance(psi, cupy.ndarray)
             xp = cupy
-        U = xp.exp(-1j * mu * dt)
+
+        U = xp.exp(-1j * (mu) * dt)
         z = U * gamma**2 / 2 * psi
         with np.errstate(all="raise"):
             try:
@@ -486,8 +489,16 @@ class TDGLSolver:
         psi, new_sq_psi = result
         return psi, new_sq_psi, dt
 
+    def thermoelectric_effects(self, epsilon: np.ndarray, eta: float):
+        operators = self.operators
+        T = 1. / (1. + epsilon)
+        thermocurrent = eta * operators.mu_gradient @ T
+        thermochemical_potential = eta * operators.mu_laplacian @ T
+
+        return thermocurrent, thermochemical_potential
+
     def solve_for_observables(
-        self, psi: np.ndarray, dA_dt: Union[float, np.ndarray]
+        self, psi: np.ndarray, thermocurrent: np.ndarray, thermochemical_potential: np.ndarray, sq_psi: np.ndarray, dA_dt: Union[float, np.ndarray]
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Solves for the scalar potential :math:`\\mu`, the supercurrent density
         :math:`\\mathbf{J}_s`, and the normal current density :math:`\\mathbf{J}_n`.
@@ -505,9 +516,10 @@ class TDGLSolver:
         operators = self.operators
         # Compute the supercurrent, scalar potential, and normal current
         supercurrent = operators.get_supercurrent(psi)
-        rhs = (operators.divergence @ (supercurrent - dA_dt)) - (
-            operators.mu_boundary_laplacian @ self.mu_boundary
+        rhs = (operators.divergence @ (supercurrent - dA_dt)) + (
+            -operators.mu_boundary_laplacian @ self.mu_boundary + thermochemical_potential
         )
+
         if use_cupy and not use_cupy_solver:
             rhs = cupy.asnumpy(rhs)
         if self.options.sparse_solver is SparseSolver.PARDISO:
@@ -516,7 +528,8 @@ class TDGLSolver:
             mu = operators.mu_laplacian_lu(rhs)
         if use_cupy and not use_cupy_solver:
             mu = cupy.asarray(mu)
-        normal_current = -(operators.mu_gradient @ mu) - dA_dt
+        normal_current = -(operators.mu_gradient @ mu) - dA_dt + thermocurrent
+
         return mu, supercurrent, normal_current
 
     def get_induced_vector_potential(
@@ -590,6 +603,8 @@ class TDGLSolver:
         induced_vector_potential: np.ndarray,
         applied_vector_potential: Optional[np.ndarray] = None,
         epsilon: Optional[np.ndarray] = None,
+        thermocurrent: Optional[np.ndarray] = None,
+        thermochemical_potential: Optional[np.ndarray] = None,
     ) -> SolverResult:
         """This method is called at each time step to update the state of the system.
 
@@ -632,7 +647,7 @@ class TDGLSolver:
                 (current_A_applied - prev_A_applied) / dt,
                 self.normalized_directions,
             )
-            if not xp.allclose(current_A_applied, self.current_A_applied):
+            if xp.any(xp.absolute(dA_dt) > 0):
                 # Update the link exponents only if the applied vector potential
                 # has actually changed.
                 operators.set_link_exponents(current_A_applied)
@@ -642,10 +657,14 @@ class TDGLSolver:
         self.current_A_applied = current_A_applied
 
         # Update the value of epsilon
-        if self.dynamic_epsilon:
-            self.epsilon = self.update_epsilon(time)
-
         epsilon = self.epsilon
+        thermocurrent = self.thermocurrent
+        thermochemical_potential = self.thermochemical_potential
+        if self.dynamic_epsilon:
+            epsilon = self.epsilon = self.update_epsilon(time)
+            if eta != 0:
+                thermocurrent, thermochemical_potential = self.thermoelectric_effects(epsilon, eta)
+
         old_sq_psi = xp.absolute(psi) ** 2
         screening_error = np.inf
         A_induced_vals = [A_induced]
@@ -667,17 +686,18 @@ class TDGLSolver:
                 # Find a new time step only for the first screening iteration.
                 dt = self.tentative_dt
 
-            if options.include_screening:
+            # ~ if options.include_screening:
                 # Update the link variables in the covariant Laplacian and gradient
                 # for psi based on the induced vector potential from the previous iteration.
-                operators.set_link_exponents(current_A_applied + A_induced)
+            operators.set_link_exponents(current_A_applied + A_induced)
 
+            # Update the scalar potential, supercurrent density, and normal current density
+
+            mu, supercurrent, normal_current = self.solve_for_observables(psi, thermocurrent, thermochemical_potential, old_sq_psi, dA_dt)
             # Update the order parameter using an adaptive time step
             psi, abs_sq_psi, dt = self.adaptive_euler_step(
                 step, psi, old_sq_psi, mu, epsilon, dt
             )
-            # Update the scalar potential, supercurrent density, and normal current density
-            mu, supercurrent, normal_current = self.solve_for_observables(psi, dA_dt)
 
             if options.include_screening:
                 # Evaluate the induced vector potential
@@ -727,6 +747,12 @@ class TDGLSolver:
         seed_solution = self.seed_solution
         num_edges = self.num_edges
         probe_points = self.probe_points
+        if self.eta != 0:
+            self.thermocurrent, self.thermochemical_potential = self.thermoelectric_effects(self.epsilon, self.eta)
+
+        else:
+            self.thermocurrent = np.zeros(num_edges)
+            self.thermochemical_potention = np.zeros(mesh.sites)
 
         # Set the initial conditions.
         if self.seed_solution is None:
@@ -760,9 +786,15 @@ class TDGLSolver:
             fixed_names.append("applied_vector_potential")
         if self.dynamic_epsilon:
             parameters["epsilon"] = self.epsilon
+            parameters["thermocurrent"] = self.thermocurrent
+            parameters["thermochemical_potential"] = self.thermochemical_potential
         else:
             fixed_values.append(self.epsilon)
             fixed_names.append("epsilon")
+            fixed_values.append(self.thermocurrent)
+            fixed_names.append("thermocurrent")
+            fixed_values.append(self.thermochemical_potential)
+            fixed_names.append("thermochemical_potential")
 
         if self.use_cupy:
             # Move arrays to the GPU
