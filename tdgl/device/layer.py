@@ -30,6 +30,7 @@ class Layer:
         u: float = 5.79,
         gamma: float = 10.0,
         z0: float = 0,
+        eta: float = 0,
     ):
         self.london_lambda = london_lambda
         self.coherence_length = coherence_length
@@ -38,6 +39,7 @@ class Layer:
         self.u = u
         self.gamma = gamma
         self.z0 = z0
+        self.eta = eta
 
     @property
     def Lambda(self) -> float:
@@ -54,6 +56,7 @@ class Layer:
             u=self.u,
             gamma=self.gamma,
             z0=self.z0,
+            eta = self.eta
         )
 
     def to_hdf5(self, h5_group: h5py.Group) -> None:
@@ -68,6 +71,7 @@ class Layer:
         h5_group.attrs["u"] = self.u
         h5_group.attrs["gamma"] = self.gamma
         h5_group.attrs["z0"] = self.z0
+        h5_group.attrs["eta"] = self.eta
         if self.conductivity is not None:
             h5_group.attrs["conductivity"] = self.conductivity
 
@@ -95,6 +99,7 @@ class Layer:
             u=get("u"),
             gamma=get("gamma"),
             z0=get("z0"),
+            eta=get("eta")
         )
 
     def __eq__(self, other):
@@ -112,6 +117,7 @@ class Layer:
             and self.u == other.u
             and self.gamma == other.gamma
             and self.z0 == other.z0
+            and self.eta == other.eta
         )
 
     def __repr__(self) -> str:
@@ -123,6 +129,7 @@ class Layer:
             f"conductivity={self.conductivity}, "
             f"u={self.u}, "
             f"gamma={self.gamma}, "
-            f"z0={self.z0}"
+            f"z0={self.z0}, "
+            f"eta={self.eta}"
             f")"
         )
