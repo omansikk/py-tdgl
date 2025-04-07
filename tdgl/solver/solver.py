@@ -686,10 +686,10 @@ class TDGLSolver:
                 # Find a new time step only for the first screening iteration.
                 dt = self.tentative_dt
 
-            # ~ if options.include_screening:
+            if options.include_screening:
                 # Update the link variables in the covariant Laplacian and gradient
                 # for psi based on the induced vector potential from the previous iteration.
-            operators.set_link_exponents(current_A_applied + A_induced)
+                operators.set_link_exponents(current_A_applied + A_induced)
 
             # Update the scalar potential, supercurrent density, and normal current density
 
