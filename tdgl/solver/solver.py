@@ -662,8 +662,8 @@ class TDGLSolver:
         thermochemical_potential = self.thermochemical_potential
         if self.dynamic_epsilon:
             epsilon = self.epsilon = self.update_epsilon(time)
-            if eta != 0:
-                thermocurrent, thermochemical_potential = self.thermoelectric_effects(epsilon, eta)
+            if self.eta != 0:
+                thermocurrent, thermochemical_potential = self.thermoelectric_effects(epsilon, self.eta)
 
         old_sq_psi = xp.absolute(psi) ** 2
         screening_error = np.inf
@@ -786,15 +786,9 @@ class TDGLSolver:
             fixed_names.append("applied_vector_potential")
         if self.dynamic_epsilon:
             parameters["epsilon"] = self.epsilon
-            parameters["thermocurrent"] = self.thermocurrent
-            parameters["thermochemical_potential"] = self.thermochemical_potential
         else:
             fixed_values.append(self.epsilon)
             fixed_names.append("epsilon")
-            fixed_values.append(self.thermocurrent)
-            fixed_names.append("thermocurrent")
-            fixed_values.append(self.thermochemical_potential)
-            fixed_names.append("thermochemical_potential")
 
         if self.use_cupy:
             # Move arrays to the GPU
