@@ -34,4 +34,4 @@ Parts of this package have been adapted from [`SuperDetectorPy`](https://github.
 The user interface is adapted from [`SuperScreen`](https://github.com/loganbvh/superscreen).
 
 # This fork
-This fork of the py-TDGL package is slightly modified in order to allow thermoelectric quasiparticle currents $\mathbf{J} = \sigma S \nabla T$, and was used in the article [Thermoelectric AC Josephson effect](https://arXiv.org/)
+This fork of the py-TDGL package is slightly modified in order to allow thermoelectric quasiparticle currents $\mathbf{J} = \sigma S \nabla T$, and was used in the article [Thermoelectric AC Josephson effect](https://arXiv.org/). The figures 2-4 of the article can be reproduced with the scripts in the `scripts` folder.
